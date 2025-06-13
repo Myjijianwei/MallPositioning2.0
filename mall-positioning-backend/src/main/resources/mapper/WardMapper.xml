@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.project.mapapp.mapper.WardMapper">
+
+    <resultMap id="BaseResultMap" type="com.project.mapapp.model.entity.Ward">
+            <id property="id" column="id" />
+            <result property="userId" column="userId" />
+            <result property="userAge" column="userAge" />
+            <result property="emergencyContact" column="emergencyContact" />
+            <result property="relationship" column="relationship" />
+            <result property="createTime" column="createTime" />
+            <result property="updateTime" column="updateTime" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,userId,userAge,emergencyContact,relationship,createTime,
+        updateTime
+    </sql>
+</mapper>

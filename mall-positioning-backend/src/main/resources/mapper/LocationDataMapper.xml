@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.project.mapapp.mapper.LocationDataMapper">
+
+    <resultMap id="BaseResultMap" type="com.project.mapapp.model.entity.LocationData">
+        <id property="id" column="id"/>
+        <result property="device_id" column="device_id"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="accuracy" column="accuracy"/>
+        <result property="timestamp" column="timestamp"/>
+        <result property="guardian_id" column="guardian_id"/>
+        <result property="create_time" column="create_time"/>
+
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,device_id,latitude,longitude,accuracy,timestamp,
+        guardian_id,session_id
+    </sql>
+</mapper>

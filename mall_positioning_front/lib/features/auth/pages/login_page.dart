@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:mall_positioning_front/pages/auth/register.dart';
-import 'package:mall_positioning_front/services/auth_service.dart';
-import 'package:mall_positioning_front/services/msm_service.dart';
-import 'package:mall_positioning_front/widgets/verification_code_input.dart';
+import 'package:mall_positioning_front/features/auth/pages/register_page.dart';
 import 'package:provider/provider.dart';
+
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/message_service.dart';
+import '../../../core/widgets/verification_code_input.dart';
 
 /// 登录页面
 /// 提供账号密码登录和邮箱验证码登录两种方式
@@ -71,6 +76,89 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(content: Text(e.toString())),
       );
     } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleLogin_test() async {
+    // 显示加载状态
+    setState(() => _isLoading = true);
+
+    // 创建新的Dio实例（避免拦截器干扰）
+    final dio = Dio(BaseOptions(
+      baseUrl: 'http://localhost:8001', // 注意：Android模拟器用10.0.2.2代替localhost
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+      headers: {'Content-Type': 'application/json'},
+    ));
+
+    try {
+      // 打印请求信息（调试用）
+      debugPrint('''
+    ======== 发送登录请求 ========
+    URL: /api/app/auth/login
+    账号: ${_accountController.text}
+    密码: ${_passwordController.text}
+    ============================
+    ''');
+
+      // 发送登录请求
+      final response = await dio.post(
+        '/api/app/auth/login',
+        data: jsonEncode({  // 明确使用jsonEncode
+          'userAccount': _accountController.text,
+          'userPassword': _passwordController.text,
+        }),
+      );
+
+      // 打印完整响应
+      debugPrint('服务器响应: ${response.data}');
+
+      // 处理成功响应
+      if (response.statusCode == 200) {
+        // 存储token（假设响应中有token字段）
+        // await _storage.write(key: 'jwt_token', value: response.data['token']);
+        Navigator.pushReplacementNamed(context, '/');
+      } else {
+        throw Exception('登录失败: ${response.data['message'] ?? '未知错误'}');
+      }
+    } on DioException catch (e) {
+      // 详细错误处理
+      debugPrint('''
+    ======== Dio错误详情 ========
+    错误类型: ${e.type}
+    请求URL: ${e.requestOptions.uri}
+    请求方法: ${e.requestOptions.method}
+    请求头: ${e.requestOptions.headers}
+    请求体: ${e.requestOptions.data}
+    响应码: ${e.response?.statusCode}
+    响应数据: ${e.response?.data}
+    错误信息: ${e.message}
+    ============================
+    ''');
+
+      String errorMessage = '登录失败: ';
+      if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage += '连接超时，请检查网络';
+      } else if (e.type == DioExceptionType.badResponse) {
+        errorMessage += e.response?.data['message'] ?? '服务器返回错误';
+      } else if (e.error is SocketException) {
+        errorMessage += '无法连接到服务器';
+      } else {
+        errorMessage += e.message ?? '未知错误';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      // 其他类型错误
+      debugPrint('非Dio错误: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('发生意外错误: ${e.toString()}')),
+      );
+    } finally {
+      // 隐藏加载状态
       if (mounted) setState(() => _isLoading = false);
     }
   }

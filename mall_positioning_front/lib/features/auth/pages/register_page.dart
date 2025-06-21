@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mall_positioning_front/services/auth_service.dart';
-import 'package:mall_positioning_front/services/msm_service.dart';
-import 'package:mall_positioning_front/widgets/custom_button.dart';
-import 'package:mall_positioning_front/widgets/custom_text_field.dart';
-import 'package:mall_positioning_front/widgets/verification_code_input.dart';
 import 'package:provider/provider.dart';
+
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/message_service.dart';
+import '../../../core/widgets/custom_button.dart';
+import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/verification_code_input.dart';
 
 /// 注册页面
 /// 包含用户基本信息填写和验证码验证

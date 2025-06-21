@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mall_positioning_front/pages/auth/login.dart';
-import 'package:mall_positioning_front/services/auth_service.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/services/auth_service.dart';
+import '../auth/pages/login_page.dart';
 
 /// 个人中心页面
 /// 功能：

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mall_positioning_front/services/auth_service.dart';
 import 'package:provider/provider.dart';
+
+import '../services/auth_service.dart';
 
 /// 路由守卫组件
 /// 功能：

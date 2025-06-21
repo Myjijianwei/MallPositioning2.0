@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mall_positioning_front/services/auth_service.dart';
 import 'package:provider/provider.dart';
+import '../../core/services/auth_service.dart';
 import '../profile/profile_page.dart';
 
 /// 主应用页面框架

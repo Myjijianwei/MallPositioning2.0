@@ -78,4 +78,16 @@ mybatis-plus:
       logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
 jwt:
     secret: asdfghjkl
-    expire-time: 604800000
+    expire-time: 86400000
+    issuer: "mapapp-server"
+security:
+  cors:
+    allowed-origins: "*"
+    allowed-methods: "*"
+    allowed-headers: "*"
+thirdparty:
+  avatar-api-url: https://cn.apihz.cn/api/img/apihzimgtx.php
+  username-api-url: https://cn.apihz.cn/api/zici/sjwm.php
+  api-id: 88888888
+  api-key: 88888888
+  default-avatar-url: https://img2.baidu.com/it/u=140788575,4191915434&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500

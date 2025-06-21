@@ -1,136 +1,122 @@
 package com.project.mapapp.controller_app;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.jwt.JWT;
-import cn.hutool.jwt.JWTUtil;
 import com.project.mapapp.common.BaseResponse;
 import com.project.mapapp.common.ErrorCode;
 import com.project.mapapp.common.ResultUtils;
 import com.project.mapapp.exception.BusinessException;
 import com.project.mapapp.model.dto.user.UserLoginRequest;
+import com.project.mapapp.model.dto.user.UserRegisterDTO;
 import com.project.mapapp.model.dto.user.UserRegisterRequest;
 import com.project.mapapp.model.entity.User;
+import com.project.mapapp.service.ThirdPartyService;
 import com.project.mapapp.service.UserService;
+import com.project.mapapp.utils.JwtTokenUtil;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.Map;
+import javax.validation.Valid;
 
 import static com.project.mapapp.common.ErrorCode.PARAMS_ERROR;
 
+@Api(tags = "APP用户管理")
 @RestController
-@RequestMapping("/app/user")
+@RequestMapping("/app/auth")
 @Slf4j
 public class AppUserController {
-
-    @Value("${jwt.secret}")
-    private String JWT_SECRET;
-
-    @Value("${jwt.expire-time}")
-    private long EXPIRE_TIME;
 
     @Resource
     private UserService userService;
 
+    @Resource
+    private ThirdPartyService thirdPartyService;
 
+    @Resource
+    private JwtTokenUtil jwtTokenUtil;
 
     @PostMapping("/login")
-    @ApiOperation("app端用户登录-用户名密码")
-    public BaseResponse<String> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
-        if (userLoginRequest == null) {
-            throw new BusinessException(PARAMS_ERROR);
-        }
-        // 只做最基础的判空，具体校验交给 Service
-        String userAccount = userLoginRequest.getUserAccount();
-        String userPassword = userLoginRequest.getUserPassword();
-        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(PARAMS_ERROR, "账号或密码不能为空");
-        }
-    
-        User user = userService.userLogin(userAccount, userPassword, request);
+    @ApiOperation("用户名密码登录")
+    public BaseResponse<String> userLogin(@RequestBody UserLoginRequest userLoginRequest,
+                                          HttpServletRequest request) {
+        validateLoginRequest(userLoginRequest);
 
-        // 生成JWT Token
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("userId", user.getId());
-        payload.put("exp", (System.currentTimeMillis() + EXPIRE_TIME) / 1000);
+        User user = userService.userLogin(
+                userLoginRequest.getUserAccount(),
+                userLoginRequest.getUserPassword(),
+                request
+        );
 
-        String token = JWT.create()
-                .addPayloads(payload)
-                .setKey(JWT_SECRET.getBytes())
-                .sign();
-        user.setToken(token);
-        return ResultUtils.success(token);
+        return ResultUtils.success(jwtTokenUtil.generateToken(user.getId()));
     }
 
     @PostMapping("/loginByEmail")
-    @ApiOperation("app端用户登录-邮箱验证码")
-    public BaseResponse<String> loginByEmail(@RequestBody UserLoginRequest user, HttpServletRequest request) {
-        log.info("Received login request: email={}, code={}", user.getEmail(), user.getCode());
-        try {
-            String email = user.getEmail();
-            String code = user.getCode();
-            if (StrUtil.isEmpty(email) || StrUtil.isEmpty(code)) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR);
-            }
-            User user1 = userService.loginByEmail(email, code, request);
+    @ApiOperation("邮箱验证码登录")
+    public BaseResponse<String> loginByEmail(@RequestBody UserLoginRequest request) {
+        if (StrUtil.hasBlank(request.getEmail(), request.getCode())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱和验证码不能为空");
+        }
 
-            // 生成JWT Token
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("userId", user1.getId());
-            payload.put("exp", (System.currentTimeMillis() + EXPIRE_TIME) / 1000);
+        User user = userService.loginByEmail(
+                request.getEmail(),
+                request.getCode(),
+                null
+        );
 
-            String token = JWT.create()
-                    .addPayloads(payload)
-                    .setKey(JWT_SECRET.getBytes())
-                    .sign();
-            user1.setToken(token);
-            return ResultUtils.success(token);
-        } catch (Exception e) {
-            log.error("Login failed: ", e);
-            throw e;
+        return ResultUtils.success(jwtTokenUtil.generateToken(user.getId()));
+    }
+
+    @PostMapping("/register")
+    @ApiOperation("用户注册")
+    public BaseResponse<Long> userRegister(@RequestBody @Valid UserRegisterRequest request) {
+        UserRegisterDTO dto = buildRegisterDTO(request);
+        long userId = userService.userRegister(dto);
+        return ResultUtils.success(userId);
+    }
+
+    @GetMapping("/checkToken")
+    @ApiOperation("Token校验")
+    public BaseResponse<Boolean> checkToken(@RequestHeader("Authorization") String token) {
+        if (StrUtil.isBlank(token)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        return ResultUtils.success(jwtTokenUtil.validateToken(token));
+    }
+
+    @PostMapping("/refreshToken")
+    @ApiOperation("刷新Token")
+    public BaseResponse<String> refreshToken(@RequestHeader("Authorization") String oldToken) {
+        Long userId = jwtTokenUtil.getUserIdFromToken(oldToken);
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        return ResultUtils.success(jwtTokenUtil.generateToken(userId));
+    }
+
+    // 辅助方法
+    private void validateLoginRequest(UserLoginRequest request) {
+        if (request == null || StringUtils.isAnyBlank(
+                request.getUserAccount(),
+                request.getUserPassword()
+        )) {
+            throw new BusinessException(PARAMS_ERROR, "账号密码不能为空");
         }
     }
 
-//    @PostMapping("/register")
-//    @ApiOperation("app端用户注册")
-//    public BaseResponse<String> userRegister(@RequestBody UserRegisterRequest userRegisterRequest, HttpServletRequest request) {
-//        if (userRegisterRequest == null) {
-//            throw new BusinessException(PARAMS_ERROR);
-//        }
-//        // 只做最基础的判空，具体校验交给 Service
-//        String userAccount = userRegisterRequest.getUserAccount();
-//        String userPassword = userRegisterRequest.getUserPassword();
-//        String checkPassword = userRegisterRequest.getCheckPassword();
-//        String email = userRegisterRequest.getEmail();
-//        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, email)) {
-//            throw new BusinessException(PARAMS_ERROR, "账号、密码、确认密码或邮箱不能为空");
-//        }
-//        if (!userPassword.equals(checkPassword)) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
-//        }
-//
-//        User user = userService.userRegister(userAccount, userPassword, email, request);
-//
-//        // 生成JWT Token
-//        Map<String, Object> payload = new HashMap<>();
-//        payload.put("userId", user.getId());
-//        payload.put("exp", (System.currentTimeMillis() + EXPIRE_TIME) / 1000);
-//
-//        String token = JWT.create()
-//                .addPayloads(payload)
-//                .setKey(JWT_SECRET.getBytes())
-//                .sign();
-//        user.setToken(token);
-//
-//        return ResultUtils.success(token);
-//    }
+    private UserRegisterDTO buildRegisterDTO(UserRegisterRequest request) {
+        return UserRegisterDTO.builder()
+                .userAccount(request.getUserAccount())
+                .userPassword(request.getUserPassword())
+                .checkPassword(request.getCheckPassword())
+                .email(request.getEmail())
+                .code(request.getCode())
+                .avatarUrl(thirdPartyService.getRandomAvatar())
+                .username(thirdPartyService.getRandomUsername())
+                .userRole(request.getUserRole())
+                .build();
+    }
 }

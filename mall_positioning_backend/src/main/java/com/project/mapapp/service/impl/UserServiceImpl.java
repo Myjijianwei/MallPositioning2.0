@@ -8,6 +8,7 @@ import com.project.mapapp.common.ErrorCode;
 import com.project.mapapp.exception.BusinessException;
 import com.project.mapapp.mapper.UserMapper;
 import com.project.mapapp.mapper.WardMapper;
+import com.project.mapapp.model.dto.user.UserRegisterDTO;
 import com.project.mapapp.model.dto.user.UserUpdateRequest;
 import com.project.mapapp.model.entity.User;
 import com.project.mapapp.model.entity.Ward;
@@ -48,10 +49,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private VerificationCodeServiceImpl verificationCodeService;
+
     /**
      * 盐值，混淆密码
      */
     private static final String SALT = "TUTE";
+
     @Autowired
     private WardMapper wardMapper;
 
@@ -396,5 +401,104 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
 
         return result;
+    }
+
+
+    /**
+     * 用户注册—app端
+     * @param userRegisterDTO
+     * @return
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public long userRegister(UserRegisterDTO userRegisterDTO) {
+        // 1. 参数校验
+        validateRegisterParams(userRegisterDTO);
+
+        // 2. 校验验证码
+        verificationCodeService.validateCode(userRegisterDTO.getEmail(), userRegisterDTO.getCode());
+
+        // 3. 加密密码
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userRegisterDTO.getUserPassword()).getBytes());
+
+        // 4. 创建用户实体
+        User user = User.builder()
+                .userAccount(userRegisterDTO.getUserAccount())
+                .userPassword(encryptPassword)
+                .email(userRegisterDTO.getEmail())
+                .userAvatar(userRegisterDTO.getAvatarUrl())
+                .userName(userRegisterDTO.getUsername())
+                .userRole(userRegisterDTO.getUserRole())
+                .build();
+
+        // 5. 保存用户
+        boolean saveResult = this.save(user);
+        if (!saveResult) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
+        }
+
+        // 6. 如果是被监护人角色，创建对应记录
+        if (WARD_ROLE.equals(userRegisterDTO.getUserRole())) {
+            createWardRecord(user.getId());
+        }
+
+        return user.getId();
+    }
+
+    private void validateRegisterParams(UserRegisterDTO dto) {
+        // 参数非空校验
+        if (StringUtils.isAnyBlank(
+                dto.getUserAccount(),
+                dto.getUserPassword(),
+                dto.getCheckPassword(),
+                dto.getEmail(),
+                dto.getCode()
+        )) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数不能为空");
+        }
+
+        // 账号长度校验
+        if (dto.getUserAccount().length() < 4) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+        }
+
+        // 密码长度校验
+        if (dto.getUserPassword().length() < 8 || dto.getCheckPassword().length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        }
+
+        // 密码一致性校验
+        if (!dto.getUserPassword().equals(dto.getCheckPassword())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
+        }
+
+        // 邮箱格式校验
+        if (!ReUtil.isMatch("^[A-Za-z0-9+_.-]+@(.+)$", dto.getEmail())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        }
+
+        // 检查账户和邮箱是否已存在
+        checkAccountAndEmailDuplicate(dto.getUserAccount(), dto.getEmail());
+    }
+
+    private void checkAccountAndEmailDuplicate(String userAccount, String email) {
+        // 账户不能重复
+        if (lambdaQuery().eq(User::getUserAccount, userAccount).exists()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该账号已存在");
+        }
+
+        // 邮箱不能重复
+        if (lambdaQuery().eq(User::getEmail, email).exists()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该邮箱已注册");
+        }
+    }
+
+    private void createWardRecord(Long userId) {
+        Ward ward = new Ward();
+        ward.setId(userId);
+        int result = wardMapper.insert(ward);
+        if (result <= 0) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建被监护人记录失败");
+        }
     }
 }

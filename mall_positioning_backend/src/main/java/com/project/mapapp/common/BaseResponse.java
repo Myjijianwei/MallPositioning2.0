@@ -31,4 +31,9 @@ public class BaseResponse<T> implements Serializable {
     public BaseResponse(ErrorCode errorCode) {
         this(errorCode.getCode(), null, errorCode.getMessage());
     }
+
+    // 新增Token专用静态方法
+    public static BaseResponse<String> token(String token) {
+        return new BaseResponse<>(0, token, "ok");
+    }
 }

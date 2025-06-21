@@ -2,6 +2,7 @@ package com.project.mapapp.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.project.mapapp.model.dto.user.UserRegisterDTO;
 import com.project.mapapp.model.dto.user.UserUpdateRequest;
 import com.project.mapapp.model.entity.User;
 
@@ -25,6 +26,12 @@ public interface UserService extends IService<User> {
      */
     long userRegister(String userAccount, String userPassword, String checkPassword,String email,String code,String avatarUrl,String username,String userRole);
 
+    /**
+     * 用户注册—app端
+     * @param userRegisterDTO
+     * @return
+     */
+    long userRegister(UserRegisterDTO userRegisterDTO);
     /**
      * 用户登录
      *

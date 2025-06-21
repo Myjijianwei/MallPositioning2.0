@@ -6,7 +6,6 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import cn.hutool.jwt.JWTUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
@@ -37,7 +36,6 @@ import java.util.stream.Collectors;
 
 import static com.project.mapapp.common.ErrorCode.PARAMS_ERROR;
 import static com.project.mapapp.common.ErrorCode.SYSTEM_ERROR;
-import static jdk.nashorn.internal.runtime.regexp.joni.Config.log;
 
 /**
  * 用户接口

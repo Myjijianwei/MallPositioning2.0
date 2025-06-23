@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/services/auth_service.dart';
-import '../auth/pages/login_page.dart';
+import '../../../core/services/auth_service.dart';
+import '../../auth/pages/login_page.dart';
 
 /// 个人中心页面
 /// 功能：
@@ -55,6 +55,7 @@ class ProfilePage extends StatelessWidget {
 
             // region ----------------------------- 功能入口 -----------------------------
             _buildProfileItem(context, Icons.person, '个人资料'),
+            _buildProfileItem(context, Icons.ac_unit, '换绑邮箱'),
             _buildProfileItem(context, Icons.settings, '系统设置'),
             _buildProfileItem(context, Icons.help, '帮助中心'),
             // endregion
@@ -100,7 +101,10 @@ class ProfilePage extends StatelessWidget {
   void _navigateToFeature(BuildContext context, String title) {
     switch (title) {
       case '个人资料':
-        Navigator.pushNamed(context, '/profile');
+        Navigator.pushNamed(context, '/profile_info');
+        break;
+      case '换绑邮箱':
+        Navigator.pushNamed(context, '/email_update');
         break;
       case '系统设置':
         Navigator.pushNamed(context, '/settings');

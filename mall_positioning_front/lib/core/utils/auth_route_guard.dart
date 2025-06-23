@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../features/auth/auth_routes.dart';
+import '../../features/profile/profile_routes.dart';
 import '../services/auth_service.dart';
 
 /// 路由守卫组件
@@ -32,8 +34,8 @@ class AuthRouteGuard extends NavigatorObserver {
 
     /// 需要认证的路由列表
     const protectedRoutes = [
-      '/profile',
-      '/settings',
+      ProfileRoutes.profile_info,
+      ProfileRoutes.email_update,
     ];
 
     /// 如果访问的是受保护路由且未登录
@@ -53,7 +55,7 @@ class AuthRouteGuard extends NavigatorObserver {
   void _redirectToLogin(BuildContext context) {
     Navigator.pushNamed(
       context,
-      '/login',
+      AuthRoutes.login,
       arguments: ModalRoute.of(context)?.settings.name, // 保存原始路由
     );
   }

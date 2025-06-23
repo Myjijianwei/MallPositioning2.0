@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mall_positioning_front/core/network/dio_service.dart';
 import 'package:provider/provider.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/navigation_service.dart';
@@ -7,7 +8,9 @@ import 'features/auth/auth_routes.dart';
 import 'features/auth/pages/login_page.dart';
 import 'features/auth/pages/register_page.dart';
 import 'features/home/home_page.dart';
-import 'features/profile/profile_info_page.dart';
+import 'features/profile/page/email_update_page.dart';
+import 'features/profile/page/profile_info_page.dart';
+import 'features/profile/profile_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +18,8 @@ void main() async {
   // 初始化AuthService并自动检查登录状态
   final authService = AuthService();
   await authService.initialize();
+  // 初始化全局Dio（会自动配置拦截器）
+  DioService();
 
   runApp(
     ChangeNotifierProvider(
@@ -96,7 +101,8 @@ class MyApp extends StatelessWidget {
       '/': (context) => HomePage(),
       AuthRoutes.login: (context) => LoginPage(),
       AuthRoutes.register: (context) => RegisterPage(),
-      '/profile': (context) => ProfileInfoPage(),
+      ProfileRoutes.profile_info: (context) => ProfileInfoPage(),
+      ProfileRoutes.email_update: (context) => EmailUpdatePage(),
     };
   }
 }

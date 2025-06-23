@@ -5,6 +5,7 @@ import com.project.mapapp.common.BaseResponse;
 import com.project.mapapp.common.ErrorCode;
 import com.project.mapapp.common.ResultUtils;
 import com.project.mapapp.exception.BusinessException;
+import com.project.mapapp.model.dto.user.ProfileDTO;
 import com.project.mapapp.model.dto.user.UserLoginRequest;
 import com.project.mapapp.model.dto.user.UserRegisterDTO;
 import com.project.mapapp.model.dto.user.UserRegisterRequest;
@@ -14,8 +15,10 @@ import com.project.mapapp.service.UserService;
 import com.project.mapapp.utils.JwtTokenUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import kotlin.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -56,15 +59,15 @@ public class AppUserController {
 
     @PostMapping("/loginByEmail")
     @ApiOperation("邮箱验证码登录")
-    public BaseResponse<String> loginByEmail(@RequestBody UserLoginRequest request) {
-        if (StrUtil.hasBlank(request.getEmail(), request.getCode())) {
+    public BaseResponse<String> loginByEmail(@RequestBody UserLoginRequest userLoginRequest,HttpServletRequest request) {
+        if (StrUtil.hasBlank(userLoginRequest.getEmail(), userLoginRequest.getCode())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱和验证码不能为空");
         }
 
         User user = userService.loginByEmail(
-                request.getEmail(),
-                request.getCode(),
-                null
+                userLoginRequest.getEmail(),
+                userLoginRequest.getCode(),
+                request
         );
 
         return ResultUtils.success(jwtTokenUtil.generateToken(user.getId()));
@@ -95,6 +98,19 @@ public class AppUserController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
         return ResultUtils.success(jwtTokenUtil.generateToken(userId));
+    }
+
+    /**
+     * 获取用户资料
+     * @param token 通过拦截器从请求头获取的JWT
+     * @return 用户资料DTO
+     */
+    @GetMapping("/profile")
+    public BaseResponse<ProfileDTO> getProfile(
+            @RequestHeader("Authorization") String token) {
+        Long userId = jwtTokenUtil.getUserIdFromToken(token);
+        ProfileDTO profile = userService.getUserProfile(userId);
+        return ResultUtils.success(profile);
     }
 
     // 辅助方法

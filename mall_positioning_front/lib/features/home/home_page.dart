@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
-import '../profile/profile_page.dart';
+import '../profile/page/profile_page.dart';
 
 /// 主应用页面框架
 /// 包含底部导航栏和四个主要功能模块：

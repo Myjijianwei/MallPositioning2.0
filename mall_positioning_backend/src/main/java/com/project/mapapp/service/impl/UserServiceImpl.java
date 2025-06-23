@@ -8,6 +8,8 @@ import com.project.mapapp.common.ErrorCode;
 import com.project.mapapp.exception.BusinessException;
 import com.project.mapapp.mapper.UserMapper;
 import com.project.mapapp.mapper.WardMapper;
+import com.project.mapapp.model.dto.user.EmailUpdateRequest;
+import com.project.mapapp.model.dto.user.ProfileDTO;
 import com.project.mapapp.model.dto.user.UserRegisterDTO;
 import com.project.mapapp.model.dto.user.UserUpdateRequest;
 import com.project.mapapp.model.entity.User;
@@ -223,41 +225,67 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return this.updateById(user);
     }
 
-    /**
-     * 校验邮箱和验证码
-     *
-     * @param userUpdateRequest 用户更新请求
-     * @param currentUser       当前用户信息
-     */
-    public void validateEmailAndCode(UserUpdateRequest userUpdateRequest, User currentUser) {
-        String newEmail = userUpdateRequest.getEmail();
+    @Override
+    public ProfileDTO getUserProfile(Long userId) {
+        User user = userMapper.selectById(userId);
+        ProfileDTO profileDTO=new ProfileDTO();
+        BeanUtils.copyProperties(user, profileDTO);
+        return profileDTO;
+    }
 
-        // 3.1 如果邮箱未修改，直接返回
-        if (newEmail.equals(currentUser.getEmail())) {
-            return;
+    @Override
+    public ProfileDTO updateUserEmail(Long userId, EmailUpdateRequest emailUpdateRequest) {
+        // 1. 参数校验
+        if (userId == null || emailUpdateRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
-        // 3.2 校验邮箱格式
-        if (!ReUtil.isMatch("^[A-Za-z0-9+_.-]+@(.+)$", newEmail)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        // 2. 获取当前用户
+        User currentUser = this.getById(userId);
+        if (currentUser == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         }
 
-        // 3.3 校验邮箱是否已被注册
+        String newEmail = emailUpdateRequest.getEmail();
+        String code = emailUpdateRequest.getCode();
+
+        // 3. 检查邮箱是否已存在
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("email", newEmail);
-        User existingUser = this.getOne(queryWrapper);
-        if (existingUser != null) {
+        long count = userMapper.selectCount(queryWrapper);
+        if (count > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "该邮箱已被注册");
         }
 
-        // 3.4 校验验证码
-        String redisCode = stringRedisTemplate.opsForValue().get("verificationCode:" + newEmail);
-        if (StrUtil.isEmpty(redisCode) || !userUpdateRequest.getCode().equals(redisCode)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码错误");
-        } else {
-            // 验证通过后，删除 Redis 中的验证码
-            stringRedisTemplate.delete("verificationCode:" + newEmail);
+        // 4. 验证码校验
+        String redisKey = "verificationCode:" + newEmail;
+        String redisCode = stringRedisTemplate.opsForValue().get(redisKey);
+        if (StrUtil.isEmpty(redisCode)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码已过期");
         }
+        if (!redisCode.equals(code)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码错误");
+        }
+
+        // 5. 更新邮箱
+        User updateUser = new User();
+        updateUser.setId(userId);
+        updateUser.setEmail(newEmail);
+        boolean success = this.updateById(updateUser);
+
+        if (!success) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "邮箱更新失败");
+        }
+
+        // 6. 删除已使用的验证码
+        stringRedisTemplate.delete(redisKey);
+
+        // 7. 返回更新后的用户信息
+        User updatedUser = this.getById(userId);
+        ProfileDTO profileDTO = new ProfileDTO();
+        BeanUtils.copyProperties(updatedUser, profileDTO);
+
+        return profileDTO;
     }
 
     /**
@@ -281,20 +309,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
         return currentUser;
-    }
-
-    /**
-     * 是否为管理员
-     *
-     * @param request
-     * @return
-     */
-    @Override
-    public boolean isAdmin(HttpServletRequest request) {
-        // 仅管理员可查询
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) userObj;
-        return user != null && ADMIN_ROLE.equals(user.getUserRole());
     }
 
     /**

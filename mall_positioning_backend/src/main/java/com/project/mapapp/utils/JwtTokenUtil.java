@@ -36,6 +36,7 @@ public class JwtTokenUtil {
     }
 
     public boolean validateToken(String token) {
+        token = extractToken(token);
         try {
             return JWT.of(token)
                     .setSigner(JWTSignerUtil.hs512(secret.getBytes()))
@@ -46,6 +47,7 @@ public class JwtTokenUtil {
     }
 
     public Long getUserIdFromToken(String token) {
+        token = extractToken(token);
         try {
             JWT jwt = JWTUtil.parseToken(token);
             Object userId = jwt.getPayload("userId");
@@ -57,5 +59,13 @@ public class JwtTokenUtil {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String extractToken(String header) {
+        if (header == null) return null;
+        if (header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        return header;
     }
 }

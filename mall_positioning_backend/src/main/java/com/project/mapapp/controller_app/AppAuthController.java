@@ -15,10 +15,8 @@ import com.project.mapapp.service.UserService;
 import com.project.mapapp.utils.JwtTokenUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import kotlin.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -31,7 +29,7 @@ import static com.project.mapapp.common.ErrorCode.PARAMS_ERROR;
 @RestController
 @RequestMapping("/app/auth")
 @Slf4j
-public class AppUserController {
+public class AppAuthController {
 
     @Resource
     private UserService userService;

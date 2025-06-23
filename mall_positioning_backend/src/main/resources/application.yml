@@ -85,6 +85,7 @@ security:
     allowed-origins: "*"
     allowed-methods: "*"
     allowed-headers: "*"
+
 thirdparty:
   avatar-api-url: https://cn.apihz.cn/api/img/apihzimgtx.php
   username-api-url: https://cn.apihz.cn/api/zici/sjwm.php

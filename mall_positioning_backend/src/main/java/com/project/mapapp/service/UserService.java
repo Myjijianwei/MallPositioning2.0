@@ -2,6 +2,8 @@ package com.project.mapapp.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.project.mapapp.model.dto.user.EmailUpdateRequest;
+import com.project.mapapp.model.dto.user.ProfileDTO;
 import com.project.mapapp.model.dto.user.UserRegisterDTO;
 import com.project.mapapp.model.dto.user.UserUpdateRequest;
 import com.project.mapapp.model.entity.User;
@@ -51,14 +53,6 @@ public interface UserService extends IService<User> {
     User getLoginUser(HttpServletRequest request);
 
     /**
-     * 是否为管理员
-     *
-     * @param request
-     * @return
-     */
-    boolean isAdmin(HttpServletRequest request);
-
-    /**
      * 用户注销
      *
      * @param request
@@ -66,6 +60,13 @@ public interface UserService extends IService<User> {
      */
     boolean userLogout(HttpServletRequest request);
 
+    /**
+     * 邮箱登录
+     * @param email 邮箱
+     * @param code 验证码
+     * @param request 请求对象
+     * @return 脱敏后的用户信息
+     */
     User loginByEmail(String email, String code, HttpServletRequest request);
 
     /**
@@ -77,6 +78,21 @@ public interface UserService extends IService<User> {
      * @return 是否成功
      */
     boolean resetPassword(String email, String code, String newPassword, String confirmPassword);
+
     boolean updateUser(UserUpdateRequest userUpdateRequest);
-    void validateEmailAndCode(UserUpdateRequest userUpdateRequest, User currentUser);
+
+    /**
+     * 获取用户资料
+     * @param userId 用户ID
+     * @return 用户资料DTO
+     */
+    ProfileDTO getUserProfile(Long userId);
+
+    /**
+     * 更新用户邮箱
+     * @param userId 用户ID
+     * @param emailUpdateRequest 包含新邮箱和验证码的请求对象
+     * @return
+     */
+    ProfileDTO updateUserEmail(Long userId, EmailUpdateRequest emailUpdateRequest);
 }

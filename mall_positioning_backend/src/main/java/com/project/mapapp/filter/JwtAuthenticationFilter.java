@@ -2,6 +2,9 @@ package com.project.mapapp.filter;
 
 import com.project.mapapp.utils.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import javax.servlet.FilterChain;
@@ -9,6 +12,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -21,33 +25,54 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain chain) throws IOException, ServletException {
 
-        // 1. 直接放行登录和公开接口
         String path = request.getServletPath();
-        if (path.startsWith("/app/auth/") || path.startsWith("/public/")) {
+        // 1. 放行公开接口
+        if (path.startsWith("/app/auth/") || path.startsWith("/public/") || path.startsWith("/msm/")) {
             chain.doFilter(request, response);
             return;
         }
 
-        // 2. 简化Token验证
-        String token = request.getHeader("Authorization");
-        if (token == null || !token.startsWith("Bearer ")) {
-            sendError(response, "缺少有效Token");
+        // 2. 获取并验证Token
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "缺少有效Token");
             return;
         }
 
-        // 3. 验证Token
-        token = token.substring(7);
-        if (!jwtUtil.validateToken(token)) {
-            sendError(response, "无效Token");
-            return;
-        }
+        String token = authHeader.substring(7);
+        try {
+            if (!jwtUtil.validateToken(token)) {
+                sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "无效Token");
+                return;
+            }
 
-        chain.doFilter(request, response);
+            // 3. 🔥 关键修复：设置认证信息
+            Long userId = jwtUtil.getUserIdFromToken(token);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userId,
+                            null,
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")) // 默认角色
+                    );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // 调试日志
+            System.out.println("JWT验证通过，用户ID: " + userId);
+            System.out.println("SecurityContext内容: " +
+                    SecurityContextHolder.getContext().getAuthentication());
+
+            chain.doFilter(request, response);
+
+        } catch (Exception e) {
+            sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Token验证失败");
+        }
     }
 
-    private void sendError(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(401);
+    private void sendError(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
         response.setContentType("application/json");
-        response.getWriter().write("{\"error\":\"" + message + "\"}");
+        response.getWriter().write(String.format(
+                "{\"status\":%d, \"message\":\"%s\"}", status, message));
     }
 }

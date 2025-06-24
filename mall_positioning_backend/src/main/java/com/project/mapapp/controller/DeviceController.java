@@ -24,6 +24,7 @@ import com.project.mapapp.model.entity.Ward;
 import com.project.mapapp.model.enums.ApplicationStatus;
 import com.project.mapapp.service.DeviceService;
 import com.project.mapapp.service.UserService;
+import com.project.mapapp.utils.JwtTokenUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -51,6 +52,8 @@ public class DeviceController {
     private UserMapper userMapper;
     @Autowired
     private WardMapper wardMapper;
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
 
     /**
      * 获取所有设备
@@ -140,6 +143,23 @@ public class DeviceController {
         ThrowUtils.throwIf(!isBindSuccess, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success("绑定成功");
     }
+
+    @PostMapping("/bindDevice_app")
+    public BaseResponse<String> bindDevice(
+            @RequestBody String deviceId,
+            @RequestHeader("Authorization") String authHeader) {
+        // 解析 JWT 获取用户 ID
+        Long userId = jwtTokenUtil.getUserIdFromToken(authHeader);
+        ThrowUtils.throwIf(userId == null || deviceId == null, ErrorCode.PARAMS_ERROR);
+
+        User loginUser = userService.getById(userId);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+
+        Boolean isBindSuccess = deviceService.bindDevice(deviceId, loginUser.getId(), loginUser.getEmail());
+        ThrowUtils.throwIf(!isBindSuccess, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success("绑定成功");
+    }
+
 
     /**
      * 获取当前用户的设备

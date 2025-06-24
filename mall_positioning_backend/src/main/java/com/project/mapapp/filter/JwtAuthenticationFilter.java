@@ -27,7 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
         // 1. 放行公开接口
-        if (path.startsWith("/app/auth/") || path.startsWith("/public/") || path.startsWith("/msm/")) {
+        if (path.startsWith("/app/auth/") || path.startsWith("/public/") || path.startsWith("/msm/") || path.startsWith("/user/")) {
             chain.doFilter(request, response);
             return;
         }

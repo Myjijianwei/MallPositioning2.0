@@ -5,8 +5,6 @@ import com.project.mapapp.model.dto.device.DeviceUpdateRequest;
 import com.project.mapapp.model.entity.Device;
 import com.baomidou.mybatisplus.extension.service.IService;
 
-import javax.validation.constraints.NotBlank;
-
 /**
 * @author jjw
 * @description 针对表【device(设备表)】的数据库操作Service
@@ -22,5 +20,4 @@ public interface DeviceService extends IService<Device> {
 
     boolean validateDevice(String wardDeviceId);
 
-    boolean validateDeviceOwnership(@NotBlank String userId, @NotBlank String deviceId);
 }

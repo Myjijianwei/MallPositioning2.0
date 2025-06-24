@@ -26,6 +26,8 @@ public class ThirdPartyServiceImpl implements ThirdPartyService {
     private String apiKey;
     @Value("${thirdparty.default-avatar-url}")
     private String defaultAvatarUrl;
+    @Value("${thirdparty.default-username}")
+    private String defaultUsername;
 
     @Override
     public String getRandomAvatar() {
@@ -55,17 +57,26 @@ public class ThirdPartyServiceImpl implements ThirdPartyService {
             return parseResponse(response);
         } catch (Exception e) {
             log.error("获取随机用户名失败，使用默认用户名", e);
-            return defaultAvatarUrl;
+            return defaultUsername;
         }
     }
 
     private String parseResponse(String response) {
         try {
             JSONObject jsonObject = JSONUtil.parseObj(response);
-            return jsonObject.getStr("msg");
+            String msg = jsonObject.getStr("msg");
+            // 检查是否为接口频率限制等错误提示
+            if (msg == null || msg.trim().isEmpty() ||
+                    msg.contains("调用频次过快") ||
+                    msg.contains("请登录接口盒子") ||
+                    msg.length() > 200) {
+                throw new RuntimeException("第三方接口返回异常: " + response);
+            }
+            return msg;
         } catch (Exception e) {
             log.error("解析响应结果失败，响应内容：{}", response, e);
-            return response;
+            throw new RuntimeException("解析响应失败");
         }
     }
 }
+

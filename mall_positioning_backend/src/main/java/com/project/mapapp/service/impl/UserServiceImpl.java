@@ -180,8 +180,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             log.info("登录失败, 用户不存在或密码错误");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
-        // TODO JWT完全跑通之后可以删除此步骤  3. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
         return user;
     }
 

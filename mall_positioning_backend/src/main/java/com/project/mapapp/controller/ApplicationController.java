@@ -9,6 +9,7 @@ import com.project.mapapp.exception.BusinessException;
 import com.project.mapapp.mapper.ApplicationMapper;
 import com.project.mapapp.model.entity.Application;
 import com.project.mapapp.service.ApplicationService;
+import com.project.mapapp.utils.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,12 +23,22 @@ public class ApplicationController {
     private ApplicationService applicationService;
     @Autowired
     private ApplicationMapper applicationMapper;
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
 
     @PostMapping("/submit")
     public BaseResponse<Application> submitApplication(
             @RequestParam String guardianId,
             @RequestParam String wardDeviceId) {
         Application application = applicationService.submitApplication(guardianId, wardDeviceId);
+        return ResultUtils.success(application);
+    }
+
+    @PostMapping("/submit_app")
+    public BaseResponse<Application> submitApplication_app(
+            @RequestParam String wardDeviceId, @RequestHeader("Authorization") String authHeader) {
+        Long guardianId = jwtTokenUtil.getUserIdFromToken(authHeader);
+        Application application = applicationService.submitApplication(String.valueOf(guardianId), wardDeviceId);
         return ResultUtils.success(application);
     }
 
@@ -38,6 +49,16 @@ public class ApplicationController {
         List<Application> applications = applicationMapper.selectList(queryWrapper);
         return ResultUtils.success(applications);
     }
+    @PostMapping("/getApplications_app")
+    public BaseResponse<List<Application>> getApplications_app(@RequestHeader("Authorization") String authHeader) {
+        Long guardianId = jwtTokenUtil.getUserIdFromToken(authHeader);
+        QueryWrapper<Application> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("guardian_id", guardianId);
+        List<Application> applications = applicationMapper.selectList(queryWrapper);
+        return ResultUtils.success(applications);
+    }
+
+
 
     @PostMapping("/confirm")
     public BaseResponse<Boolean> confirmApplication(@RequestParam Long notificationId, @RequestParam Boolean isApproved) {

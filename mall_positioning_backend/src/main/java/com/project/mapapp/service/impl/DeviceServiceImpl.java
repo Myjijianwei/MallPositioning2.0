@@ -2,7 +2,6 @@ package com.project.mapapp.service.impl;
 
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.RandomUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
@@ -48,6 +47,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         //判断设备ID是否还有效
         String redisDeviceMessage = stringRedisTemplate.opsForValue().get("applyDeviceInfo:" + email);
         DeviceBindRequest redisDeviceInfo = new Gson().fromJson(redisDeviceMessage, DeviceBindRequest.class);
+        System.out.println(ObjUtil.isEmpty(redisDeviceInfo));
+        System.out.println(!deviceId.equals(redisDeviceInfo.getDeviceId()));
         if (ObjUtil.isEmpty(redisDeviceInfo) || !deviceId.equals(redisDeviceInfo.getDeviceId())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         } else {
@@ -129,15 +130,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device>
         // 检查设备ID是否存在
         Device device = deviceMapper.selectById(deviceId);
         return device != null;
-    }
-
-    @Override
-    public boolean validateDeviceOwnership(String userId, String deviceId) {
-        QueryWrapper<Device> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("device_id", deviceId);
-        queryWrapper.eq("user_id", userId);
-        Long l = deviceMapper.selectCount(queryWrapper);
-        return l != null && l > 0;
     }
 
 

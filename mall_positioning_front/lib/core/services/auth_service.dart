@@ -42,8 +42,6 @@ class AuthService extends ChangeNotifier {
   // endregion
 
   // region ---------------------------- Token管理 ----------------------------
-  /// 持久化Token（原子操作）
-  /// 同时存储access_token和refresh_token
   static Future<void> _persistTokens({
     required String accessToken,
     String? refreshToken,
@@ -55,12 +53,10 @@ class AuthService extends ChangeNotifier {
           _storage.write(key: 'refresh_token', value: refreshToken),
       ]);
     } catch (e) {
-      // 存储失败时清理可能已写入的部分数据
       await _clearTokens();
       rethrow;
     }
   }
-
 
   static Future<void> _clearTokens() async {
     await Future.wait([
@@ -108,8 +104,6 @@ class AuthService extends ChangeNotifier {
   // endregion
 
   // region ----------------------------  认证状态检查 ----------------------------
-  /// 检查认证状态（带UI提示）
-  /// 用于需要显示加载状态的场景
   Future<bool> checkAuthentication() async {
     final token = await getAccessToken();
     if (token == null) {
@@ -127,10 +121,9 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
-
   // endregion
 
-  // region ---------------------------- 登录/注册/注销（完全保留） ----------------------------
+  // region ---------------------------- 登录/注册/注销 ----------------------------
   Future<void> register({
     required String userAccount,
     required String userPassword,
@@ -181,20 +174,16 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// 处理登录响应（统一处理Token存储）
   Future<void> _handleLoginResponse(Response response) async {
     try {
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        // 持久化Token
         await _persistTokens(
           accessToken: data['data'] as String,
           refreshToken: data['refresh_token'] as String?,
         );
-
-        // 更新状态
         _updateLoginStatus(true);
-        await _loadUserProfile(); // 立即加载用户资料
+        await _loadUserProfile();
       } else {
         throw Exception(response.data['message'] ?? '登录失败');
       }
@@ -207,6 +196,7 @@ class AuthService extends ChangeNotifier {
   Future<void> logout() async {
     await _clearTokens();
     _updateLoginStatus(false);
+    notifyListeners();
   }
   // endregion
 
@@ -223,6 +213,7 @@ class AuthService extends ChangeNotifier {
         data['email'],
         data['userAvatar'],
         data['userProfile'],
+        data['userRole'], // 关键：同步后端角色
       );
     } catch (e) {
       debugPrint('加载资料失败: $e');
@@ -258,17 +249,14 @@ class AuthService extends ChangeNotifier {
     required String code,
   }) async {
     try {
-      final response = await _dio.put(
+      final response = await _dio.post(
         '/app/profile/updateEmail',
         data: {
           'email': email,
           'code': code,
         },
       );
-
       debugPrint('邮箱更新响应: ${response.data}');
-
-      // 处理返回数据
       if (response.statusCode == 200) {
         await _loadUserProfile();
       } else {
@@ -292,17 +280,40 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _updateUserInfo(String? nickname, String? email, String? avatar, String? profile) {
+  void _updateUserInfo(
+      String? nickname,
+      String? email,
+      String? avatar,
+      String? profile, [
+        dynamic userRole,
+      ]) {
     _userNickname = nickname;
     _userEmail = email;
     _userAvatar = avatar;
     _userProfile = profile;
+    // 关键：同步后端角色
+    if (userRole != null) {
+      if (userRole is String) {
+        if (userRole == 'guardian') {
+          _userRole = UserRole.guardian;
+        } else if (userRole == 'ward') {
+          _userRole = UserRole.ward;
+        }
+      } else if (userRole is int) {
+        // 如果后端用数字表示角色
+        _userRole = userRole == 0 ? UserRole.guardian : UserRole.ward;
+      }
+    }
     notifyListeners();
   }
 
+  /// 只允许未登录时本地切换角色，已登录时角色由后端控制
   void toggleRole() {
-    _userRole = _userRole == UserRole.guardian ? UserRole.ward : UserRole.guardian;
-    notifyListeners();
+    if (!_isLoggedIn) {
+      _userRole = _userRole == UserRole.guardian ? UserRole.ward : UserRole.guardian;
+      notifyListeners();
+    }
   }
 // endregion
 }
+

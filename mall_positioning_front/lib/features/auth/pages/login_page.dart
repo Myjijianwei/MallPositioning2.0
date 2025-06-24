@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:mall_positioning_front/core/utils/auth_route_guard.dart';
 import 'package:mall_positioning_front/features/auth/pages/register_page.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/message_service.dart';
 import '../../../core/widgets/verification_code_input.dart';
+import '../auth_routes.dart';
 
 /// 登录页面
 /// 提供账号密码登录和邮箱验证码登录两种方式
@@ -274,7 +276,7 @@ class _LoginPageState extends State<LoginPage> {
   /// 构建注册链接
   Widget _buildRegisterLink() {
     return TextButton(
-      onPressed: () => Navigator.pushNamed(context, RegisterPage.routeName),
+      onPressed: () => Navigator.pushNamed(context, AuthRoutes.register),
       child: const Text('还没有账号？立即注册'),
     );
   }

@@ -3,7 +3,7 @@
     <application
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:label="mall_positioning_front"
+        android:label="迷失守护者"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         tools:targetApi="m">

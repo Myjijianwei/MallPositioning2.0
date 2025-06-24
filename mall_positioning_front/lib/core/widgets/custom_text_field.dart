@@ -13,6 +13,7 @@ class CustomTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final int? maxLines;
   final bool autofocus;
+  final String? errorText;
 
   const CustomTextField({
     Key? key,
@@ -28,6 +29,7 @@ class CustomTextField extends StatelessWidget {
     this.suffixIcon,
     this.maxLines = 1,
     this.autofocus = false,
+    this.errorText,
   }) : super(key: key);
 
   @override
@@ -121,6 +123,7 @@ class CustomTextField extends StatelessWidget {
         )
             : null,
         errorMaxLines: 2,
+        errorText: errorText,
       ),
     );
   }
